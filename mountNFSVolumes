@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# Just a small script to check if some volumes are mounted and mount them
+# if it is not already done.
+
+# define conditions according to:
+# http://kvz.io/blog/2013/11/21/bash-best-practices/
+# detection of stale file handle and unmounting from:
+# http://serverfault.com/questions/617610/stale-nfs-file-handle-after-reboot
+
+#set -o errexit
+set -o nounset
+
+BACKUP=/your/path/to/folder/;
+DATA=/your/path/to/folder/;
+
+# Make sure we're running as root
+if (( `id -u` != 0 )); then
+   echo "Sorry, must be root. Exiting..."
+   exit 126
+fi
+
+# Detect Stale file handle and write output into a variable and then into a file
+mounts=`df 2>&1 | grep 'Stale file handle' |awk '{print ""$2"" }' > NFS_stales.txt`
+# Remove : ‘ and ’ characters from the output
+sed -r -i 's/://' NFS_stales.txt && sed -r -i 's/‘//' NFS_stales.txt && sed -r -i 's/’//' NFS_stales.txt
+
+# Read NFS_stales.txt output file line by line then unmount stale by stale.
+#    IFS='' (or IFS=) prevents leading/trailing whitespace from being trimmed.
+#    -r prevents backslash escapes from being interpreted.
+#    || [[ -n $line ]] prevents the last line from being ignored if it doesn't end with a \n (since read returns a non-zero exit code when it encounters EOF).
+
+while IFS='' read -r line || [[ -n "$line" ]]; do
+   echo "Unmounting due to NFS Stale file handle: $line"
+   umount -fl $line
+done < "NFS_stales.txt"
+rm --force "NFS_stales.txt"
+
+# Mount volumes if not already done
+
+mountpoint -q "${BACKUP}"
+if [ "$?" -ne "0" ]
+then
+   echo "Mounting Backup..."
+   mount -o rw,sync,hard,intr,nosuid DEVICE_IP:/path/to/share "${BACKUP}"
+   echo "Done."
+fi
+
+mountpoint -q "${DATA}"
+if [ "$?" -ne "0" ]
+then
+   echo "Mounting Data..."
+   mount -o rw,sync,hard,intr,nosuid DEVICE_IP:/path/to/share "${DATA}"
+   echo "Done."
+fi
+
+mountpoint -q "${BACKUP}"
+RESULT="$?" || `mountpoint -q "${DATA}"`
+
+if [ "$RESULT" -eq 0 ]
+then
+   echo "Volumes are mounted."
+fi
+exit "${RESULT}"

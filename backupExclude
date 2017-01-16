@@ -1,0 +1,32 @@
+# We exlude everything except /etc, /home
+bin
+boot
+dev
+lib
+lost+found
+media
+mnt
+opt
+proc
+root
+run
+sbin
+selinux
+srv
+sys
+tmp
+usr
+
+# In var, we only take /var/www
+var/backups
+var/cache
+var/lib
+var/local
+var/lock
+var/log
+var/mail
+var/opt
+var/run
+var/spool
+var/swap
+var/tmp

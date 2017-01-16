@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+
+# ------------------------------------------------------------------------------
+# Backup script of Amadeous, based on the snapshot script of:
+# http://www.mikerubel.org/computers/rsync_snapshots/
+#
+# This script makes a daily backup each day at 3 am, excluding some files.
+# 
+# For this configuration to work, the following things need to be configured
+#  - a location for your backup (on an NFS server)
+#  - root access
+#
+# ------------------------------------------------------------------------------
+
+# Definitions 
+# ------------------------------------------------------------------------------
+
+NBR_DAILY_BACKUP=4
+NBR_WEEKLY_BACKUP=3
+BACKUP_DIR="/your/path/to/backup/folder/"
+OBJECT="BACKUP ERROR"
+DEST="your@email.pizza"
+ERROR_MSG_RM="Rm error: oldest backup had not be deleted."
+ERROR_MSG_DOWN="Backup cannot be performed: backup volume is down."
+ERROR_MSG_ROT="Mv error: backup did not rotate correctly."
+ERROR_MSG_CP="CP error during copy of last dailyBackup."
+
+# The script
+# ------------------------------------------------------------------------------
+
+# Make sure we're running as root
+if (( `id -u` != 0 ))
+then
+   echo "Sorry, must be root. Exiting..."
+   exit 126
+fi
+
+echo "** Proceeding to weekly backup **"
+
+# Make sure that the volumes is mounted. Mount it if not already done.
+# Optional if backups are performed on the same disk
+echo "Check if volumes are up and mount them if not.."
+sudo bash /home/cubie/bin/mountNFSVolumes
+if [ "$?" -ne 0 ]
+then
+   echo "$ERROR_MSG_DOWN"
+   mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_DOWN"
+   exit 1
+fi
+
+# Ajust backup index
+dailyBackupNbr=`expr $NBR_DAILY_BACKUP - 1`
+backupNbr=`expr $NBR_WEEKLY_BACKUP - 1`
+
+# Delete potentially out-dated backups (if NBR_WEEKLY_BACKUP has been lowered)
+for file in "$BACKUP_DIR"/weekly.*
+do
+   name=${file##*/}
+   number=${name#weekly.}
+   if [ "$number" -gt "$backupNbr" ]
+   then
+      echo -n "Deleting undesired backup weekly.$number.."
+      rm -rf --preserve-root "$BACKUP_DIR"weekly."$number"
+      echo " Done"
+   fi
+done
+
+# Delete last backup
+if [ -d "$BACKUP_DIR"weekly."$backupNbr" ]
+then
+   echo -n "Deleting old backup weekly.$backupNbr.."
+   rm -rf --preserve-root "$BACKUP_DIR"weekly."$backupNbr"
+   
+   if [ "$?" -ne 0 ]
+   then
+      echo "$ERROR_MSG_RM"
+      mail -s "$OBJECT" "DEST" <<< "$ERROR_MSG_RM"
+      exit 1
+   else
+      echo " Done"
+   fi
+fi
+
+# If there is a daily.4
+if [ -d "$BACKUP_DIR"daily."$dailyBackupNbr" ]
+then
+   # Rotate backups
+   echo -n "Rotating backups.."
+   for((n=1;n<=$backupNbr;n++))
+   {
+      NBR=`expr $backupNbr - $n`
+      if [ -d "$BACKUP_DIR"weekly."$NBR" ]
+      then
+         NEW_NBR=`expr $NBR + 1`
+         mv "$BACKUP_DIR"weekly."$NBR" "$BACKUP_DIR"weekly."$NEW_NBR"
+      fi
+   }
+   if [ "$?" -ne 0 ]
+   then
+      echo "$ERROR_MSG_ROT"
+      mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_ROT"
+      exit 1
+   else
+      echo " Done"
+   fi
+
+   # We make a hard-link-only (except for dirs) copy of the latest backup
+   echo -n "Making hard-link copy from latest backup.. "
+   cp -al "$BACKUP_DIR"daily."$dailyBackupNbr" "$BACKUP_DIR"weekly.0
+   if [ "$?" -eq 0 ]
+   then
+      echo "Backup done !"
+      exit 0
+   else
+      echo "$ERROR_MSG_CP"
+      mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_CP"
+      exit 1
+   fi
+fi

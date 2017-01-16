@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+
+# ------------------------------------------------------------------------------
+# Backup script of Amadeous, based on the snapshot script of:
+# http://www.mikerubel.org/computers/rsync_snapshots/
+#
+# This script makes a daily backup each day at 3 am, excluding some files.
+# 
+# For this configuration to work, the following things need to be configured
+#  - a location for your backup (on an NFS server)
+#  - root access
+#
+# ------------------------------------------------------------------------------
+
+# Definitions 
+# ------------------------------------------------------------------------------
+
+NBR_DAILY_BACKUP=4
+BACKUP_DIR="/your/destination/folder/"
+EXCLUDED="/your/path/to/backupExclude"
+OBJECT="BACKUP ERROR"
+DEST="your@email.pizza"
+ERROR_MSG_RM="Rm error: oldest backup had not be deleted."
+ERROR_MSG_DOWN="Backup cannot be performed: backup volume is down."
+ERROR_MSG_ROT="Mv error: backup did not rotate correctly."
+ERROR_MSG_RSYNC="Rsync error during backup."
+
+# The script
+# ------------------------------------------------------------------------------
+
+# Make sure we're running as root
+if (( `id -u` != 0 ))
+then
+   echo "Sorry, must be root. Exiting..."
+   exit 126
+fi
+
+echo "** Proceeding to daily backup **"
+
+# Make sure that the volumes is mounted. Mount it if not already done.
+# Optional if backups are performed on the same disk
+echo -n "Check if volumes are up and mount them if not.. "
+sudo bash /home/cubie/bin/mountNFSVolumes
+if [ "$?" -ne 0 ]
+then
+   echo "$ERROR_MSG_DOWN"
+   mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_DOWN"
+   exit 1
+fi
+
+# Ajust backup index
+backupNbr=`expr $NBR_DAILY_BACKUP - 1`
+
+# Delete potentially out-dated backups (if NBR_DAILY_BACKUP has been lowered)
+for file in "$BACKUP_DIR"/daily.*
+do
+   name=${file##*/}
+   number=${name#daily.}
+   if [ "$number" -gt "$backupNbr" ]
+   then
+      echo -n "Deleting undesired backup daily.$number.."
+      rm -rf --preserve-root "$BACKUP_DIR"daily."$number"
+      echo " Done"
+   fi
+done
+
+# Delete last backup
+if [ -d "$BACKUP_DIR"daily."$backupNbr" ]
+then
+   echo -n "Deleting old backup daily.$backupNbr.."
+   rm -rf --preserve-root "$BACKUP_DIR"daily."$backupNbr"
+   
+   if [ "$?" -ne 0 ]
+   then
+      echo "$ERROR_MSG_RM"
+      mail -s "$OBJECT" "DEST" <<< "$ERROR_MSG_RM"
+      exit 1
+   else
+      echo " Done"
+   fi
+fi
+
+# Rotate backups
+echo -n "Rotating backups.."
+for((n=1;n<$backupNbr;n++))
+{
+   NBR=`expr $backupNbr - $n`
+   if [ -d "$BACKUP_DIR"daily."$NBR" ]
+   then
+      NEW_NBR=`expr $NBR + 1`
+      mv "$BACKUP_DIR"daily."$NBR" "$BACKUP_DIR"daily."$NEW_NBR"
+   fi
+}
+if [ "$?" -ne 0 ]
+then
+   echo "$ERROR_MSG_ROT"
+   mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_ROT"
+   exit 1
+else
+   echo " Done"
+fi
+
+# We make a hard-link-only (except for dirs) copy of the latest backup
+if [ -d "$BACKUP_DIR"daily.0 ]
+then
+   echo -n "Making hard-link copy from latest backup.."
+   cp -al "$BACKUP_DIR"daily.0 "$BACKUP_DIR"daily.1
+   echo " Done"
+fi
+
+echo "Starting backup.."
+# Perform a backup of the system
+rsync -va --delete --delete-excluded --exclude-from="$EXCLUDED" / "$BACKUP_DIR"daily.0
+
+# Update the mtime of daily.0 to reflect the backup time
+if [ "$?" -eq 0 ]
+then
+   touch "$BACKUP_DIR"daily.0
+   echo "Backup done !"
+   exit 0
+else
+   echo "$ERROR_MSG_RSYNC"
+   mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_RSYNC"
+   exit 1
+fi
