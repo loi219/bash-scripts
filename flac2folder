@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# This script uses the flac2mp3.sh script from Tordeu (http://blog.tordeu.com/?p=184)
+# conserving metadata and move the songs to a destination folder
+
+# The quality is set as 3. This can be between 0 and 9. 0 being the best quality but
+# the bigger files as well.
+
+set -u   # exit if the script tries to use an unbound variable 
+set -e   # exit if a command fails 
+
+if [[ !($# -eq 2) ]] 
+then
+   echo "usage: flac2Folder /complete/source/folder/ /complete/destination/folder/"
+   echo "Do not miss the trailing / at the end of path."
+   exit 1
+fi
+
+QUALITY="3"
+SRC_F=$1
+DES_F=$2
+SCRIPT="path/to/Flac2mp3.sh"
+
+if [[ -d  "$SRC_F" ]] && [[ -d "$DES_F" ]]
+then
+   if [[ -e "$SCRIPT" ]]
+   then
+      for f in "$SRC_F"*.flac
+      do
+         file=${f##*/}
+         bash "$SCRIPT" "$QUALITY" "$SRC_F""$file" "$DES_F""${file%.*}.mp3"
+      done
+      echo "All files have been converted";
+      exit 0
+   else
+      echo "The file $SCRIPT isn't is in same folder as this script as it should be."
+      exit 1
+   fi
+else
+   echo "This directory does not exists."
+   exit 1
+fi
