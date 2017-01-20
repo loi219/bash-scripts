@@ -11,7 +11,7 @@ set -e   # exit if a command fails
 
 if [[ !($# -eq 2) ]] 
 then
-   echo "usage: flac2Folder /complete/source/folder/ /complete/destination/folder/"
+   echo "usage: flac2folder /complete/source/folder/ /complete/destination/folder/"
    echo "Do not miss the trailing / at the end of path."
    exit 1
 fi
