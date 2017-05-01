@@ -11,8 +11,8 @@
 #set -o errexit
 set -o nounset
 
-BACKUP=/your/path/to/folder/;
-DATA=/your/path/to/folder/;
+BACKUP=/media/backup/;
+DATA=/media/owncloud;
 
 # Make sure we're running as root
 if (( `id -u` != 0 )); then

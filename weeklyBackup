@@ -17,9 +17,9 @@
 
 NBR_DAILY_BACKUP=4
 NBR_WEEKLY_BACKUP=3
-BACKUP_DIR="/your/path/to/backup/folder/"
+BACKUP_DIR="/media/backup/thylacine"
 OBJECT="BACKUP ERROR"
-DEST="your@email.pizza"
+DEST="s@rouvinez.me"
 ERROR_MSG_RM="Rm error: oldest backup had not be deleted."
 ERROR_MSG_DOWN="Backup cannot be performed: backup volume is down."
 ERROR_MSG_ROT="Mv error: backup did not rotate correctly."
@@ -40,7 +40,7 @@ echo "** Proceeding to weekly backup **"
 # Make sure that the volumes is mounted. Mount it if not already done.
 # Optional if backups are performed on the same disk
 echo "Check if volumes are up and mount them if not.."
-sudo bash /home/cubie/bin/mountNFSVolumes
+bash mountNFSVolumes
 if [ "$?" -ne 0 ]
 then
    echo "$ERROR_MSG_DOWN"

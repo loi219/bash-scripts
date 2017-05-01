@@ -14,12 +14,13 @@
 
 # Definitions 
 # ------------------------------------------------------------------------------
-
+cd "$( dirname "${BASH_SOURCE[0]}" )" 
 NBR_DAILY_BACKUP=4
-BACKUP_DIR="/your/destination/folder/"
-EXCLUDED="/your/path/to/backupExclude"
+BACKUP_DIR="/media/backup/thylacine/"
+INCLUDED="backupInclude"
+EXCLUDED="backupExclude"
 OBJECT="BACKUP ERROR"
-DEST="your@email.pizza"
+DEST="s@rouvinez.me"
 ERROR_MSG_RM="Rm error: oldest backup had not be deleted."
 ERROR_MSG_DOWN="Backup cannot be performed: backup volume is down."
 ERROR_MSG_ROT="Mv error: backup did not rotate correctly."
@@ -40,11 +41,11 @@ echo "** Proceeding to daily backup **"
 # Make sure that the volumes is mounted. Mount it if not already done.
 # Optional if backups are performed on the same disk
 echo -n "Check if volumes are up and mount them if not.. "
-sudo bash /home/cubie/bin/mountNFSVolumes
+mountNFSVolumes
 if [ "$?" -ne 0 ]
 then
    echo "$ERROR_MSG_DOWN"
-   mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_DOWN"
+   #mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_DOWN"
    exit 1
 fi
 
@@ -73,7 +74,7 @@ then
    if [ "$?" -ne 0 ]
    then
       echo "$ERROR_MSG_RM"
-      mail -s "$OBJECT" "DEST" <<< "$ERROR_MSG_RM"
+      #mail -s "$OBJECT" "DEST" <<< "$ERROR_MSG_RM"
       exit 1
    else
       echo " Done"
@@ -94,7 +95,7 @@ for((n=1;n<$backupNbr;n++))
 if [ "$?" -ne 0 ]
 then
    echo "$ERROR_MSG_ROT"
-   mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_ROT"
+   #mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_ROT"
    exit 1
 else
    echo " Done"
@@ -110,7 +111,7 @@ fi
 
 echo "Starting backup.."
 # Perform a backup of the system
-rsync -va --delete --delete-excluded --exclude-from="$EXCLUDED" / "$BACKUP_DIR"daily.0
+rsync -va --delete --delete-excluded --recursive --exclude-from="$EXCLUDED" --files-from="$INCLUDED" / "$BACKUP_DIR"daily.0
 
 # Update the mtime of daily.0 to reflect the backup time
 if [ "$?" -eq 0 ]
@@ -120,6 +121,6 @@ then
    exit 0
 else
    echo "$ERROR_MSG_RSYNC"
-   mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_RSYNC"
+   #mail -s "$OBJECT" "$DEST" <<< "$ERROR_MSG_RSYNC"
    exit 1
 fi

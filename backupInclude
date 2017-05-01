@@ -1,0 +1,5 @@
+/etc
+/home
+/var/lib/matrix-synapse
+/var/lib/postgresql
+/var/www
