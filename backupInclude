@@ -1,5 +1,4 @@
 /etc
 /home
-/var/lib/matrix-synapse
-/var/lib/postgresql
+/var/lib/
 /var/www

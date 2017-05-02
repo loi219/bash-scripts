@@ -8,11 +8,10 @@
 # detection of stale file handle and unmounting from:
 # http://serverfault.com/questions/617610/stale-nfs-file-handle-after-reboot
 
-#set -o errexit
 set -o nounset
 
-BACKUP=/media/backup/;
-DATA=/media/owncloud;
+BACKUP=/path/to/your/folder/;
+DATA=/path/to/your/folder/;
 
 # Make sure we're running as root
 if (( `id -u` != 0 )); then
@@ -42,7 +41,7 @@ mountpoint -q "${BACKUP}"
 if [ "$?" -ne "0" ]
 then
    echo "Mounting Backup..."
-   mount -o rw,sync,hard,intr,nosuid DEVICE_IP:/path/to/share "${BACKUP}"
+   mount -o rw,sync,hard,intr,nosuid NFS_SERVER:/path/to/share "${BACKUP}"
    echo "Done."
 fi
 
@@ -50,7 +49,7 @@ mountpoint -q "${DATA}"
 if [ "$?" -ne "0" ]
 then
    echo "Mounting Data..."
-   mount -o rw,sync,hard,intr,nosuid DEVICE_IP:/path/to/share "${DATA}"
+   mount -o rw,sync,hard,intr,nosuid NFS_SERVER:/path/to/share "${DATA}"
    echo "Done."
 fi
 
