@@ -14,7 +14,7 @@
 
 # Definitions 
 # ------------------------------------------------------------------------------
-
+cd "$( dirname "${BASH_SOURCE[0]}" )" 
 NBR_DAILY_BACKUP=4
 NBR_WEEKLY_BACKUP=3
 BACKUP_DIR="/path/to/backupDir"
