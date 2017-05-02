@@ -16,11 +16,11 @@
 # ------------------------------------------------------------------------------
 cd "$( dirname "${BASH_SOURCE[0]}" )" 
 NBR_DAILY_BACKUP=4
-BACKUP_DIR="/media/backup/thylacine/"
+BACKUP_DIR="/path/to/backupDir/
 INCLUDED="backupInclude"
 EXCLUDED="backupExclude"
 OBJECT="BACKUP ERROR"
-DEST="s@rouvinez.me"
+DEST="yourmail@pizza.io"
 ERROR_MSG_RM="Rm error: oldest backup had not be deleted."
 ERROR_MSG_DOWN="Backup cannot be performed: backup volume is down."
 ERROR_MSG_ROT="Mv error: backup did not rotate correctly."
@@ -41,7 +41,7 @@ echo "** Proceeding to daily backup **"
 # Make sure that the volumes is mounted. Mount it if not already done.
 # Optional if backups are performed on the same disk
 echo -n "Check if volumes are up and mount them if not.. "
-mountNFSVolumes
+./mountNFSVolumes
 if [ "$?" -ne 0 ]
 then
    echo "$ERROR_MSG_DOWN"
